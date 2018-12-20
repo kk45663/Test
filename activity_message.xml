@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tvMsgNotFound"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Message Not Available"
+        android:visibility="gone"
+        android:textColor="@color/colorAccent" />
+
+    <android.support.v7.widget.RecyclerView
+        android:visibility="gone"
+        android:id="@+id/rvMsg"
+        android:scrollbars="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"></android.support.v7.widget.RecyclerView>
+</LinearLayout>
