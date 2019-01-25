@@ -1,17 +1,30 @@
 package com.example.kundan6singh.testproject.Filter;
 
 import android.app.Dialog;
+import android.content.Intent;
+import android.graphics.Color;
+import android.speech.RecognizerIntent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.AppCompatImageButton;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.ImageButton;
+import android.widget.RelativeLayout;
+import android.widget.SearchView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.kundan6singh.testproject.R;
 
@@ -27,9 +40,13 @@ import java.util.List;
 import java.util.Set;
 
 public class FilterActivity extends AppCompatActivity {
-    RecyclerView rvView;
-    Button btnFilter;
-    Adapter adapter;
+     RecyclerView rvView;
+    ImageButton btnVoice;
+    RelativeLayout rlByName;
+    SearchView search;
+   // AutoCompleteTextView autoComTV;
+    AppCompatImageButton imgBtnSearchType;
+     Adapter adapter;
     FilterAdapter filterAdapterObj;
     ArrayList<Product> productList = new ArrayList<>();
     List<String> alCategoryFilterList = new ArrayList<>();
@@ -39,26 +56,122 @@ public class FilterActivity extends AppCompatActivity {
     FilterListModel filterListModelObj;
     CheckBox cbClearAll;
     Product productObj;
+    private static final int REQUEST_CODE = 1234;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_filter);
         rvView = (RecyclerView) findViewById(R.id.rv);
-        btnFilter = (Button) findViewById(R.id.btnFilter);
+       /* autoComTV = (AutoCompleteTextView) findViewById(R.id.autoComTV);
+        btnFilter = (Button) findViewById(R.id.btnFilter);*/
+        search=(SearchView)findViewById(R.id.search);
+        btnVoice = (ImageButton) findViewById(R.id.btnVoice);
+        imgBtnSearchType = (AppCompatImageButton) findViewById(R.id.imgBtnSearchType);
+        rlByName=(RelativeLayout)findViewById(R.id.rlByName);
         getJsonData();
         rvView.setHasFixedSize(true);
         adapter = new Adapter(FilterActivity.this, productList);
         rvView.setAdapter(adapter);
         rvView.setLayoutManager(new LinearLayoutManager(this));
         rvView.setItemAnimator(new DefaultItemAnimator());
-        btnFilter.setOnClickListener(new View.OnClickListener() {
+        imgBtnSearchType.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                showCustomDialogForFilter(alCategoryFilterList, filterItemList);
+                //Creating the instance of PopupMenu
+                PopupMenu popup = new PopupMenu(FilterActivity.this, imgBtnSearchType);
+                //Inflating the Popup using xml file
+                popup.getMenuInflater().inflate(R.menu.poupup_menu, popup.getMenu());
+
+                //registering popup with OnMenuItemClickListener
+                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                    public boolean onMenuItemClick(MenuItem item) {
+                        Toast.makeText(FilterActivity.this, "You Clicked : " + item.getTitle(), Toast.LENGTH_SHORT).show();
+                        String value = item.getTitle().toString();
+                        switch (value) {
+                            case "By Category":
+                                showCustomDialogForFilter(alCategoryFilterList, filterItemList);
+                                rlByName.setVisibility(View.GONE);
+                                break;
+                            case "By Name":
+                                populateRecyclerView();
+                                rlByName.setVisibility(View.VISIBLE);
+                                break;
+                            default:
+                                break;
+                        }
+                        return true;
+                    }
+                });
+
+                popup.show();//showing popup menu
             }
         });
 
+        btnVoice.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startVoiceRecognitionActivity();
+            }
+        });
+
+        search.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                adapter.getFilter().filter(newText);
+                return true;
+            }
+        });
+       /* autoComTV.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                Log.v("before", "Before Change");
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                Log.v("onText", "on text Change");
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                Log.v("aftertext", "after text Change");
+                autoComTV.setThreshold(1);//will start working from first character
+                // autoComTV.setAdapter(alCategoryFilterList);//setting the adapter data into the AutoCompleteTextView
+                autoComTV.setTextColor(Color.RED);
+            }
+        });*/
+        // autoComTV.setOnApplyWindowInsetsListener();
+
+    }
+
+    private void startVoiceRecognitionActivity() {
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Voice searching...");
+        startActivityForResult(intent, REQUEST_CODE);
+    }
+
+    /**
+     * Handle the results from the voice recognition activity.
+     */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE && resultCode == RESULT_OK) {
+            // Populate the wordsList with the String values the recognition engine thought it heard
+            final ArrayList<String> matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+            if (!matches.isEmpty()) {
+                String Query = matches.get(0);
+                search.setQuery(Query, false);
+                btnVoice.setEnabled(false);
+            }
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     private void showCustomDialogForFilter(final List<String> alCategoryFilterList, final ArrayList<FilterListModel> filterItemList) {
@@ -223,5 +336,10 @@ public class FilterActivity extends AppCompatActivity {
     public void setClearAllSelection() {
         if (cbClearAll.isChecked())
             cbClearAll.setChecked(false);
+    }
+
+    public void reFreashAdapter(List<Product> mFilteredList) {
+        adapter = new Adapter(FilterActivity.this, mFilteredList);
+        rvView.setAdapter(adapter);
     }
 }
